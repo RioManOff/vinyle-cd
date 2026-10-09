@@ -7,21 +7,50 @@
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
-<header>
-  <h1>💿 Ma Collection</h1>
-  <div class="tabs">
-    <button class="tab active" data-type="vinyl">Vinyles <span id="countVinyl"></span></button>
-    <button class="tab" data-type="cd">CD <span id="countCd"></span></button>
+
+<!-- Message si config.js n'est pas rempli -->
+<section id="configView" class="center-view" hidden>
+  <div class="login-card">
+    <h1>⚙️ Configuration</h1>
+    <p>Ouvre <code>config.js</code> et remplace l'adresse et la clé par celles de ton projet Supabase.</p>
   </div>
-  <input class="search" id="search" type="search" placeholder="Rechercher un titre ou un artiste…" autocomplete="off">
-</header>
+</section>
 
-<main>
-  <div class="grid" id="grid"></div>
-  <div class="empty" id="empty" hidden></div>
-</main>
+<!-- Connexion -->
+<section id="loginView" class="center-view" hidden>
+  <form class="login-card" id="loginForm">
+    <h1>💿 Ma Collection</h1>
+    <label for="email">Email</label>
+    <input type="email" id="email" autocomplete="username" required>
+    <label for="password">Mot de passe</label>
+    <input type="password" id="password" autocomplete="current-password" required>
+    <button class="btn primary full" id="loginBtn" type="submit">Se connecter</button>
+    <div class="error" id="loginError"></div>
+  </form>
+</section>
 
-<button class="fab" id="addBtn">＋ Ajouter</button>
+<!-- Application -->
+<div id="appView" hidden>
+  <header>
+    <div class="top">
+      <h1>💿 Ma Collection</h1>
+      <button class="link" id="logoutBtn" type="button">Déconnexion</button>
+    </div>
+    <div class="tabs">
+      <button class="tab active" data-type="vinyl">Vinyles <span id="countVinyl"></span></button>
+      <button class="tab" data-type="cd">CD <span id="countCd"></span></button>
+    </div>
+    <input class="search" id="search" type="search" placeholder="Rechercher un titre ou un artiste…" autocomplete="off">
+  </header>
+
+  <main>
+    <div class="status" id="status"></div>
+    <div class="grid" id="grid"></div>
+    <div class="empty" id="empty" hidden></div>
+  </main>
+
+  <button class="fab" id="addBtn">＋ Ajouter</button>
+</div>
 
 <!-- Formulaire d'ajout -->
 <dialog id="addDialog">
@@ -54,6 +83,8 @@
   </div>
 </dialog>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="config.js"></script>
 <script src="script.js"></script>
 </body>
 </html>

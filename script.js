@@ -1,34 +1,80 @@
 (() => {
   const $ = id => document.getElementById(id);
   const LABELS = { vinyl: 'vinyle', cd: 'CD' };
+  const BUCKET = 'covers';
+
+  let sb;
   let currentType = 'vinyl';
   let items = [];
-  let pendingPhoto = null;
+  let pendingBlob = null;
+  let pendingUrl = null;
   let openedId = null;
 
-  /* ---------- IndexedDB ---------- */
-  let db;
-  function openDB() {
-    return new Promise((resolve, reject) => {
-      const req = indexedDB.open('ma-collection', 1);
-      req.onupgradeneeded = () => req.result.createObjectStore('items', { keyPath: 'id' });
-      req.onsuccess = () => { db = req.result; resolve(); };
-      req.onerror = () => reject(req.error);
+  /* ---------- Vues ---------- */
+  function showView(name) {
+    $('configView').hidden = name !== 'config';
+    $('loginView').hidden = name !== 'login';
+    $('appView').hidden = name !== 'app';
+  }
+
+  /* ---------- Configuration ---------- */
+  const cfgOk = window.SUPABASE_URL && window.SUPABASE_ANON_KEY &&
+    !window.SUPABASE_URL.includes('TON-PROJET') && !window.SUPABASE_ANON_KEY.includes('TA-CLE');
+  if (!cfgOk || !window.supabase) { showView('config'); return; }
+  sb = window.supabase.createClient(window.SUPABASE_URL, window.SUPABASE_ANON_KEY);
+
+  /* ---------- Connexion ---------- */
+  $('loginForm').addEventListener('submit', async e => {
+    e.preventDefault();
+    $('loginError').textContent = '';
+    $('loginBtn').disabled = true;
+    const { error } = await sb.auth.signInWithPassword({
+      email: $('email').value.trim(),
+      password: $('password').value
     });
-  }
-  function tx(mode) { return db.transaction('items', mode).objectStore('items'); }
-  function getAll() {
-    return new Promise((res, rej) => { const r = tx('readonly').getAll(); r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); });
-  }
-  function put(item) {
-    return new Promise((res, rej) => { const r = tx('readwrite').put(item); r.onsuccess = () => res(); r.onerror = () => rej(r.error); });
-  }
-  function del(id) {
-    return new Promise((res, rej) => { const r = tx('readwrite').delete(id); r.onsuccess = () => res(); r.onerror = () => rej(r.error); });
+    $('loginBtn').disabled = false;
+    if (error) $('loginError').textContent = 'Email ou mot de passe incorrect.';
+  });
+  $('logoutBtn').addEventListener('click', () => sb.auth.signOut());
+
+  let started = false;
+  sb.auth.onAuthStateChange((_event, session) => {
+    if (session) {
+      showView('app');
+      if (!started) { started = true; loadItems(); }
+    } else {
+      started = false;
+      items = [];
+      showView('login');
+    }
+  });
+  sb.auth.getSession().then(({ data }) => { if (!data.session) showView('login'); });
+
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden && started) loadItems();
+  });
+
+  /* ---------- Chargement ---------- */
+  function setStatus(msg) { $('status').textContent = msg || ''; }
+
+  async function loadItems() {
+    setStatus('Chargement…');
+    const { data, error } = await sb.from('items').select('*').order('created_at', { ascending: false });
+    if (error) { setStatus('Erreur de chargement : ' + error.message); return; }
+
+    const paths = data.filter(i => i.photo_path).map(i => i.photo_path);
+    const urls = {};
+    if (paths.length) {
+      const { data: signed } = await sb.storage.from(BUCKET).createSignedUrls(paths, 21600);
+      (signed || []).forEach(s => { if (s.signedUrl) urls[s.path] = s.signedUrl; });
+    }
+    items = data.map(i => ({ ...i, photo: urls[i.photo_path] || null }));
+    setStatus('');
+    render();
   }
 
   /* ---------- Photo : redimensionnement ---------- */
-  function resizeImage(file, max = 900) {
+  function resizeImage(file, max = 1000) {
     return new Promise((resolve, reject) => {
       const url = URL.createObjectURL(file);
       const img = new Image();
@@ -39,7 +85,7 @@
         c.height = Math.round(img.height * scale);
         c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
         URL.revokeObjectURL(url);
-        resolve(c.toDataURL('image/jpeg', 0.82));
+        c.toBlob(b => b ? resolve(b) : reject(new Error('blob')), 'image/jpeg', 0.82);
       };
       img.onerror = reject;
       img.src = url;
@@ -48,6 +94,7 @@
 
   /* ---------- Affichage ---------- */
   function norm(s) { return (s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, ''); }
+  const bg = u => 'url("' + u + '")';
 
   function render() {
     const q = norm($('search').value.trim());
@@ -66,7 +113,7 @@
       el.className = 'item';
       const img = document.createElement('div');
       img.className = 'img';
-      if (i.photo) img.style.backgroundImage = 'url(' + i.photo + ')';
+      if (i.photo) img.style.backgroundImage = bg(i.photo);
       else img.textContent = currentType === 'vinyl' ? '🎵' : '💿';
       const meta = document.createElement('div');
       meta.className = 'meta';
@@ -95,13 +142,17 @@
   $('search').addEventListener('input', render);
 
   /* ---------- Ajout ---------- */
-  function setPreview(dataUrl) {
+  function setPreview(url) {
     const p = $('preview');
-    if (dataUrl) { p.style.backgroundImage = 'url(' + dataUrl + ')'; p.textContent = ''; }
+    if (url) { p.style.backgroundImage = bg(url); p.textContent = ''; }
     else { p.style.backgroundImage = ''; p.textContent = 'Aucune photo'; }
   }
+  function clearPending() {
+    if (pendingUrl) URL.revokeObjectURL(pendingUrl);
+    pendingBlob = null; pendingUrl = null;
+  }
   $('addBtn').addEventListener('click', () => {
-    pendingPhoto = null;
+    clearPending();
     $('fTitle').value = ''; $('fArtist').value = '';
     $('addTitle').textContent = 'Ajouter un ' + LABELS[currentType];
     setPreview(null);
@@ -112,25 +163,45 @@
   async function onFile(e) {
     const f = e.target.files[0];
     if (!f) return;
-    try { pendingPhoto = await resizeImage(f); setPreview(pendingPhoto); }
-    catch { alert("Impossible de lire cette image."); }
+    try {
+      clearPending();
+      pendingBlob = await resizeImage(f);
+      pendingUrl = URL.createObjectURL(pendingBlob);
+      setPreview(pendingUrl);
+    } catch { alert('Impossible de lire cette image.'); }
     e.target.value = '';
   }
   $('camInput').addEventListener('change', onFile);
   $('galInput').addEventListener('change', onFile);
-  $('cancelAdd').addEventListener('click', () => $('addDialog').close());
+  $('cancelAdd').addEventListener('click', () => { clearPending(); $('addDialog').close(); });
+
   $('saveAdd').addEventListener('click', async () => {
     const title = $('fTitle').value.trim();
     const artist = $('fArtist').value.trim();
-    if (!title && !pendingPhoto) { alert('Ajoute au moins un titre ou une photo.'); return; }
-    const item = {
-      id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
-      type: currentType, title, artist, photo: pendingPhoto, created: Date.now()
-    };
-    await put(item);
-    items.push(item);
-    $('addDialog').close();
-    render();
+    if (!title && !pendingBlob) { alert('Ajoute au moins un titre ou une photo.'); return; }
+
+    const btn = $('saveAdd');
+    btn.disabled = true; btn.textContent = 'Envoi…';
+    let path = null;
+    try {
+      if (pendingBlob) {
+        path = crypto.randomUUID() + '.jpg';
+        const up = await sb.storage.from(BUCKET).upload(path, pendingBlob, { contentType: 'image/jpeg' });
+        if (up.error) throw up.error;
+      }
+      const ins = await sb.from('items').insert({ type: currentType, title, artist, photo_path: path });
+      if (ins.error) {
+        if (path) await sb.storage.from(BUCKET).remove([path]);
+        throw ins.error;
+      }
+      clearPending();
+      $('addDialog').close();
+      await loadItems();
+    } catch (err) {
+      alert("Erreur lors de l'enregistrement : " + (err.message || err));
+    } finally {
+      btn.disabled = false; btn.textContent = 'Enregistrer';
+    }
   });
 
   /* ---------- Détail / suppression ---------- */
@@ -138,7 +209,7 @@
     const i = items.find(x => x.id === id);
     if (!i) return;
     openedId = id;
-    $('dImg').style.backgroundImage = i.photo ? 'url(' + i.photo + ')' : '';
+    $('dImg').style.backgroundImage = i.photo ? bg(i.photo) : '';
     $('dTitle').textContent = i.title || 'Sans titre';
     $('dArtist').textContent = i.artist || '';
     $('detailDialog').showModal();
@@ -146,13 +217,11 @@
   $('closeDetail').addEventListener('click', () => $('detailDialog').close());
   $('delBtn').addEventListener('click', async () => {
     if (!confirm('Supprimer cet élément ?')) return;
-    await del(openedId);
-    items = items.filter(x => x.id !== openedId);
+    const item = items.find(x => x.id === openedId);
+    const res = await sb.from('items').delete().eq('id', openedId);
+    if (res.error) { alert('Erreur : ' + res.error.message); return; }
+    if (item && item.photo_path) await sb.storage.from(BUCKET).remove([item.photo_path]);
     $('detailDialog').close();
-    render();
+    await loadItems();
   });
-
-  /* ---------- Démarrage ---------- */
-  openDB().then(getAll).then(all => { items = all; render(); })
-    .catch(() => { alert("Le stockage du navigateur n'est pas disponible."); render(); });
 })();
