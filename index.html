@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ma Collection</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header>
+  <h1>💿 Ma Collection</h1>
+  <div class="tabs">
+    <button class="tab active" data-type="vinyl">Vinyles <span id="countVinyl"></span></button>
+    <button class="tab" data-type="cd">CD <span id="countCd"></span></button>
+  </div>
+  <input class="search" id="search" type="search" placeholder="Rechercher un titre ou un artiste…" autocomplete="off">
+</header>
+
+<main>
+  <div class="grid" id="grid"></div>
+  <div class="empty" id="empty" hidden></div>
+</main>
+
+<button class="fab" id="addBtn">＋ Ajouter</button>
+
+<!-- Formulaire d'ajout -->
+<dialog id="addDialog">
+  <h2 id="addTitle">Ajouter</h2>
+  <label for="fTitle">Titre</label>
+  <input type="text" id="fTitle" placeholder="Ex : Abbey Road">
+  <label for="fArtist">Artiste</label>
+  <input type="text" id="fArtist" placeholder="Ex : The Beatles">
+  <div class="preview" id="preview">Aucune photo</div>
+  <div class="row">
+    <button class="btn" id="takePhoto" type="button">📷 Prendre une photo</button>
+    <button class="btn" id="pickPhoto" type="button">🖼️ Galerie</button>
+  </div>
+  <input type="file" id="camInput" accept="image/*" capture="environment">
+  <input type="file" id="galInput" accept="image/*">
+  <div class="row">
+    <button class="btn" id="cancelAdd" type="button">Annuler</button>
+    <button class="btn primary" id="saveAdd" type="button">Enregistrer</button>
+  </div>
+</dialog>
+
+<!-- Détail -->
+<dialog id="detailDialog">
+  <div class="detail-img" id="dImg"></div>
+  <h2 id="dTitle"></h2>
+  <div id="dArtist" style="color:var(--muted)"></div>
+  <div class="row">
+    <button class="btn danger" id="delBtn" type="button">Supprimer</button>
+    <button class="btn" id="closeDetail" type="button">Fermer</button>
+  </div>
+</dialog>
+
+<script src="script.js"></script>
+</body>
+</html>
