@@ -1,90 +1,320 @@
 <!doctype html>
-<html lang="fr">
+<html lang="fr" data-theme="auto" data-format="vinyl">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Ma Collection</title>
+<meta name="description" content="Ma collection de vinyles et de CD">
+<meta name="theme-color" content="#110e0c">
+<meta name="color-scheme" content="dark light">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="icon" href="icon-192.png" type="image/png" sizes="192x192">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Collection">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<script>
+  /* Applique le thème et le format avant l'affichage (évite un flash) */
+  try {
+    var t = localStorage.getItem('mc.theme');
+    if (t === 'light' || t === 'dark') document.documentElement.setAttribute('data-theme', t);
+    if (localStorage.getItem('mc.tab') === 'cd') document.documentElement.setAttribute('data-format', 'cd');
+  } catch (e) {}
+</script>
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-<!-- Message si config.js n'est pas rempli -->
-<section id="configView" class="center-view" hidden>
-  <div class="login-card">
-    <h1>⚙️ Configuration</h1>
-    <p>Ouvre <code>config.js</code> et remplace l'adresse et la clé par celles de ton projet Supabase.</p>
+<!-- Icônes (dérivées de Feather Icons, licence MIT) -->
+<svg xmlns="http://www.w3.org/2000/svg" width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <symbol id="logo" viewBox="0 0 64 64">
+    <circle cx="32" cy="32" r="30" fill="#0d0b0a"/>
+    <circle cx="32" cy="32" r="30" fill="none" stroke="rgba(255,255,255,.16)" stroke-width="1"/>
+    <circle cx="32" cy="32" r="25" fill="none" stroke="rgba(255,255,255,.07)" stroke-width="1"/>
+    <circle cx="32" cy="32" r="21" fill="none" stroke="rgba(255,255,255,.07)" stroke-width="1"/>
+    <circle cx="32" cy="32" r="17" fill="none" stroke="rgba(255,255,255,.07)" stroke-width="1"/>
+    <path d="M32 6.5a25.5 25.5 0 0 1 22 12.7" fill="none" stroke="rgba(255,255,255,.28)" stroke-width="2" stroke-linecap="round"/>
+    <path d="M32 57.5a25.5 25.5 0 0 1-22-12.7" fill="none" stroke="rgba(255,255,255,.16)" stroke-width="2" stroke-linecap="round"/>
+    <circle cx="32" cy="32" r="11" fill="var(--accent)"/>
+    <circle cx="32" cy="32" r="2.2" fill="#0d0b0a"/>
+  </symbol>
+  <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7.5"/><path d="m20.5 20.5-4.2-4.2"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></symbol>
+  <symbol id="i-heart" viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></symbol>
+  <symbol id="i-more" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/></symbol>
+  <symbol id="i-grid" viewBox="0 0 24 24"><rect x="3.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="13.5" width="7" height="7" rx="1.5"/><rect x="3.5" y="13.5" width="7" height="7" rx="1.5"/></symbol>
+  <symbol id="i-list" viewBox="0 0 24 24"><path d="M8 6h13M8 12h13M8 18h13M3.5 6h.01M3.5 12h.01M3.5 18h.01"/></symbol>
+  <symbol id="i-camera" viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></symbol>
+  <symbol id="i-image" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></symbol>
+  <symbol id="i-chart" viewBox="0 0 24 24"><path d="M18 20V10M12 20V4M6 20v-6"/></symbol>
+  <symbol id="i-download" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/><path d="M12 15V3"/></symbol>
+  <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></symbol>
+  <symbol id="i-logout" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5M21 12H9"/></symbol>
+  <symbol id="i-eye" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></symbol>
+  <symbol id="i-eye-off" viewBox="0 0 24 24"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><path d="m1 1 22 22"/></symbol>
+  <symbol id="i-link" viewBox="0 0 24 24"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><path d="M15 3h6v6M10 14 21 3"/></symbol>
+  <symbol id="i-edit" viewBox="0 0 24 24"><path d="M17 3a2.83 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5z"/></symbol>
+  <symbol id="i-trash" viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></symbol>
+  <symbol id="i-alert" viewBox="0 0 24 24"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><path d="M12 9v4M12 17h.01"/></symbol>
+  <symbol id="i-chevron" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol>
+  <symbol id="i-vinyl" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3.6"/><circle cx="12" cy="12" r=".6"/><path d="M12 5.4a6.6 6.6 0 0 1 6.6 6.6" opacity=".55"/></symbol>
+  <symbol id="i-cd" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="2.6"/><path d="M12 7.4a4.6 4.6 0 0 0-4.6 4.6" opacity=".55"/><path d="M3.4 9.2A9 9 0 0 1 9.2 3.4" opacity=".55"/></symbol>
+</svg>
+
+<noscript>
+  <p style="padding:24px;font-family:sans-serif">Ce site a besoin de JavaScript pour fonctionner.</p>
+</noscript>
+
+<!-- Démarrage -->
+<section id="splash" class="center-view" aria-live="polite">
+  <div class="splash-inner">
+    <svg class="logo-disc spin" aria-hidden="true"><use href="#logo"/></svg>
+    <p id="splashMsg" class="muted" hidden>
+      Le chargement est plus long que d'habitude… Vérifie ta connexion.<br>
+      <button type="button" class="btn" onclick="location.reload()">Recharger la page</button>
+    </p>
+  </div>
+</section>
+
+<!-- Message d'erreur / de configuration -->
+<section id="errorView" class="center-view" hidden>
+  <div class="panel">
+    <div class="err-ic"><svg class="ic" aria-hidden="true"><use href="#i-alert"/></svg></div>
+    <h1 id="errTitle" class="panel-title">Oups</h1>
+    <p id="errMsg" class="muted"></p>
+    <button type="button" class="btn primary block" id="errRetry">Réessayer</button>
   </div>
 </section>
 
 <!-- Connexion -->
 <section id="loginView" class="center-view" hidden>
-  <form class="login-card" id="loginForm">
-    <h1>💿 Ma Collection</h1>
-    <label for="email">Email</label>
-    <input type="email" id="email" autocomplete="username" required>
-    <label for="password">Mot de passe</label>
-    <input type="password" id="password" autocomplete="current-password" required>
-    <button class="btn primary full" id="loginBtn" type="submit">Se connecter</button>
-    <div class="error" id="loginError"></div>
+  <form class="panel" id="loginForm" novalidate>
+    <div class="brand-lg">
+      <svg class="logo-disc" aria-hidden="true"><use href="#logo"/></svg>
+      <h1>Ma Collection</h1>
+      <p class="muted">Vinyles et CD, partout avec toi.</p>
+    </div>
+    <div class="field">
+      <label for="email">Email</label>
+      <input class="input" id="email" name="email" type="email" inputmode="email" autocomplete="username" autocapitalize="none" autocorrect="off" spellcheck="false" required>
+    </div>
+    <div class="field">
+      <label for="password">Mot de passe</label>
+      <div class="pw">
+        <input class="input" id="password" name="password" type="password" autocomplete="current-password" required>
+        <button type="button" class="icon-btn" id="pwToggle" aria-label="Afficher le mot de passe"><svg class="ic" aria-hidden="true"><use href="#i-eye"/></svg></button>
+      </div>
+    </div>
+    <button class="btn primary block mt" id="loginBtn" type="submit">Se connecter</button>
+    <p class="form-error" id="loginError" role="alert"></p>
   </form>
 </section>
 
 <!-- Application -->
-<div id="appView" hidden>
-  <header>
-    <div class="top">
-      <h1>💿 Ma Collection</h1>
-      <button class="link" id="logoutBtn" type="button">Déconnexion</button>
+<div id="app" hidden>
+  <header class="topbar">
+    <div class="brand">
+      <svg class="logo" aria-hidden="true"><use href="#logo"/></svg>
+      <h1>Ma Collection</h1>
     </div>
-    <div class="tabs">
-      <button class="tab active" data-type="vinyl">Vinyles <span id="countVinyl"></span></button>
-      <button class="tab" data-type="cd">CD <span id="countCd"></span></button>
+    <div class="top-actions">
+      <button type="button" class="icon-btn" id="viewBtn" aria-label="Afficher en liste"><svg class="ic" aria-hidden="true"><use href="#i-list"/></svg></button>
+      <button type="button" class="icon-btn" id="menuBtn" aria-label="Menu"><svg class="ic" aria-hidden="true"><use href="#i-more"/></svg></button>
     </div>
-    <input class="search" id="search" type="search" placeholder="Rechercher un titre ou un artiste…" autocomplete="off">
   </header>
 
+  <div class="toolbar" id="toolbar">
+    <div class="toolbar-inner">
+      <div class="searchbox">
+        <svg class="ic" aria-hidden="true"><use href="#i-search"/></svg>
+        <input id="search" type="search" placeholder="Titre, artiste, année, genre…" aria-label="Rechercher" enterkeyhint="search" autocomplete="off" autocapitalize="none" autocorrect="off" spellcheck="false">
+        <button type="button" class="icon-btn small" id="clearSearch" aria-label="Effacer la recherche" hidden><svg class="ic" aria-hidden="true"><use href="#i-x"/></svg></button>
+      </div>
+      <div class="chips">
+        <button type="button" class="chip" id="favChip" aria-pressed="false"><svg class="ic" aria-hidden="true"><use href="#i-heart"/></svg><span>Favoris</span></button>
+        <label class="chip" id="genreChip" hidden>
+          <span>Genre : <b id="genreLabel">Tous</b></span>
+          <svg class="ic chev" aria-hidden="true"><use href="#i-chevron"/></svg>
+          <select id="genreSel" aria-label="Filtrer par genre"><option value="">Tous les genres</option></select>
+        </label>
+        <label class="chip" id="sortChip">
+          <span>Tri : <b id="sortLabel">Artiste</b></span>
+          <svg class="ic chev" aria-hidden="true"><use href="#i-chevron"/></svg>
+          <select id="sortSel" aria-label="Trier la collection">
+            <option value="artist">Artiste (A → Z)</option>
+            <option value="title">Titre (A → Z)</option>
+            <option value="yearDesc">Année (récent d'abord)</option>
+            <option value="yearAsc">Année (ancien d'abord)</option>
+            <option value="recent">Ajoutés récemment</option>
+          </select>
+        </label>
+      </div>
+    </div>
+  </div>
+
   <main>
-    <div class="status" id="status"></div>
-    <div class="grid" id="grid"></div>
+    <div class="summary" id="summary" aria-live="polite"></div>
+    <ul class="grid" id="grid" data-view="grid"></ul>
     <div class="empty" id="empty" hidden></div>
   </main>
 
-  <button class="fab" id="addBtn">＋ Ajouter</button>
+  <nav class="dock" aria-label="Catégories">
+    <button type="button" class="dock-tab" data-type="vinyl" aria-current="true">
+      <svg class="ic" aria-hidden="true"><use href="#i-vinyl"/></svg><span>Vinyles</span><b id="cntVinyl">0</b>
+    </button>
+    <button type="button" class="dock-add" id="addBtn" aria-label="Ajouter un disque"><svg class="ic" aria-hidden="true"><use href="#i-plus"/></svg></button>
+    <button type="button" class="dock-tab" data-type="cd" aria-current="false">
+      <svg class="ic" aria-hidden="true"><use href="#i-cd"/></svg><span>CD</span><b id="cntCd">0</b>
+    </button>
+  </nav>
 </div>
 
-<!-- Formulaire d'ajout -->
-<dialog id="addDialog">
-  <h2 id="addTitle">Ajouter</h2>
-  <label for="fTitle">Titre</label>
-  <input type="text" id="fTitle" placeholder="Ex : Abbey Road">
-  <label for="fArtist">Artiste</label>
-  <input type="text" id="fArtist" placeholder="Ex : The Beatles">
-  <div class="preview" id="preview">Aucune photo</div>
-  <div class="row">
-    <button class="btn" id="takePhoto" type="button">📷 Prendre une photo</button>
-    <button class="btn" id="pickPhoto" type="button">🖼️ Galerie</button>
-  </div>
-  <input type="file" id="camInput" accept="image/*" capture="environment">
-  <input type="file" id="galInput" accept="image/*">
-  <div class="row">
-    <button class="btn" id="cancelAdd" type="button">Annuler</button>
-    <button class="btn primary" id="saveAdd" type="button">Enregistrer</button>
+<!-- Ajouter / modifier -->
+<dialog id="formSheet" class="sheet" data-sticky aria-labelledby="formTitle">
+  <form class="sheet-body" id="itemForm" novalidate autocomplete="off">
+    <div class="sheet-handle" aria-hidden="true"></div>
+    <div class="sheet-head">
+      <h2 id="formTitle">Ajouter</h2>
+      <button type="button" class="icon-btn" id="formClose" aria-label="Fermer"><svg class="ic" aria-hidden="true"><use href="#i-x"/></svg></button>
+    </div>
+
+    <div class="seg" role="radiogroup" aria-label="Format">
+      <label><input type="radio" name="ftype" value="vinyl" checked><span><svg class="ic" aria-hidden="true"><use href="#i-vinyl"/></svg>Vinyle</span></label>
+      <label><input type="radio" name="ftype" value="cd"><span><svg class="ic" aria-hidden="true"><use href="#i-cd"/></svg>CD</span></label>
+    </div>
+
+    <div class="field">
+      <label for="onlineQ">Trouver la pochette en ligne</label>
+      <div class="searchbox">
+        <svg class="ic" aria-hidden="true"><use href="#i-search"/></svg>
+        <input id="onlineQ" type="search" placeholder="Ex : Daft Punk Discovery" enterkeyhint="search" autocomplete="off" autocapitalize="none" autocorrect="off" spellcheck="false">
+      </div>
+      <div class="results" id="onlineResults" hidden></div>
+    </div>
+
+    <div class="cover-pick">
+      <div class="cover-preview" id="coverPreview"></div>
+      <div class="cover-actions">
+        <button type="button" class="btn" id="takePhoto"><svg class="ic" aria-hidden="true"><use href="#i-camera"/></svg>Prendre en photo</button>
+        <button type="button" class="btn" id="pickPhoto"><svg class="ic" aria-hidden="true"><use href="#i-image"/></svg>Galerie</button>
+        <button type="button" class="btn ghost danger" id="removePhoto" hidden>Retirer l'image</button>
+      </div>
+    </div>
+    <input type="file" id="camInput" accept="image/*" capture="environment" hidden>
+    <input type="file" id="galInput" accept="image/*" hidden>
+
+    <div class="field">
+      <label for="fTitle">Titre</label>
+      <input class="input" id="fTitle" type="text" placeholder="Ex : Abbey Road" autocomplete="off" enterkeyhint="next">
+    </div>
+    <div class="field">
+      <label for="fArtist">Artiste</label>
+      <input class="input" id="fArtist" type="text" placeholder="Ex : The Beatles" autocomplete="off" enterkeyhint="next">
+    </div>
+    <p class="notice" id="dupNotice" role="status" hidden></p>
+    <div class="row2">
+      <div class="field">
+        <label for="fYear">Année</label>
+        <input class="input" id="fYear" type="number" inputmode="numeric" min="1900" max="2100" placeholder="1969">
+      </div>
+      <div class="field">
+        <label for="fGenre">Genre</label>
+        <input class="input" id="fGenre" type="text" list="genreList" placeholder="Rock" autocomplete="off">
+        <datalist id="genreList"></datalist>
+      </div>
+    </div>
+    <div class="field">
+      <label for="fNotes">Notes</label>
+      <textarea class="input" id="fNotes" rows="3" placeholder="Édition, état, où tu l'as trouvé…"></textarea>
+    </div>
+
+    <div class="sheet-actions stick">
+      <p class="form-error" id="formError" role="alert" hidden></p>
+      <div class="btns">
+        <button type="button" class="btn" id="formCancel">Annuler</button>
+        <button type="submit" class="btn primary" id="formSave">Ajouter</button>
+      </div>
+    </div>
+  </form>
+</dialog>
+
+<!-- Fiche -->
+<dialog id="detailSheet" class="sheet" aria-labelledby="dTitle">
+  <div class="sheet-body">
+    <div class="sheet-handle" aria-hidden="true"></div>
+    <div class="detail-cover" id="dCover"></div>
+    <div class="detail-main">
+      <div class="badges" id="dBadges"></div>
+      <h2 id="dTitle"></h2>
+      <p class="detail-artist" id="dArtist"></p>
+      <p class="detail-notes" id="dNotes" hidden></p>
+      <div class="listen">
+        <a class="btn small" id="dSpotify" target="_blank" rel="noopener noreferrer"><svg class="ic" aria-hidden="true"><use href="#i-link"/></svg>Spotify</a>
+        <a class="btn small" id="dYoutube" target="_blank" rel="noopener noreferrer"><svg class="ic" aria-hidden="true"><use href="#i-link"/></svg>YouTube</a>
+      </div>
+    </div>
+    <div class="sheet-actions">
+      <button type="button" class="btn" id="dFav"><svg class="ic" aria-hidden="true"><use href="#i-heart"/></svg><span>Favori</span></button>
+      <button type="button" class="btn" id="dEdit"><svg class="ic" aria-hidden="true"><use href="#i-edit"/></svg>Modifier</button>
+      <button type="button" class="btn danger" id="dDelete" aria-label="Supprimer"><svg class="ic" aria-hidden="true"><use href="#i-trash"/></svg></button>
+    </div>
+    <button type="button" class="btn ghost block mt-s" id="dClose">Fermer</button>
   </div>
 </dialog>
 
-<!-- Détail -->
-<dialog id="detailDialog">
-  <div class="detail-img" id="dImg"></div>
-  <h2 id="dTitle"></h2>
-  <div id="dArtist" style="color:var(--muted)"></div>
-  <div class="row">
-    <button class="btn danger" id="delBtn" type="button">Supprimer</button>
-    <button class="btn" id="closeDetail" type="button">Fermer</button>
+<!-- Menu -->
+<dialog id="menuSheet" class="sheet" aria-labelledby="menuTitle">
+  <div class="sheet-body">
+    <div class="sheet-handle" aria-hidden="true"></div>
+    <div class="sheet-head">
+      <h2 id="menuTitle">Menu</h2>
+      <button type="button" class="icon-btn" id="menuClose" aria-label="Fermer"><svg class="ic" aria-hidden="true"><use href="#i-x"/></svg></button>
+    </div>
+    <div class="menu-row">
+      <span>Thème</span>
+      <div class="seg tiny" role="radiogroup" aria-label="Thème">
+        <label><input type="radio" name="theme" value="auto"><span>Auto</span></label>
+        <label><input type="radio" name="theme" value="light"><span>Clair</span></label>
+        <label><input type="radio" name="theme" value="dark"><span>Sombre</span></label>
+      </div>
+    </div>
+    <button type="button" class="menu-item" id="statsBtn"><svg class="ic" aria-hidden="true"><use href="#i-chart"/></svg>Statistiques</button>
+    <button type="button" class="menu-item" id="exportBtn"><svg class="ic" aria-hidden="true"><use href="#i-download"/></svg>Exporter en CSV</button>
+    <button type="button" class="menu-item" id="reloadBtn"><svg class="ic" aria-hidden="true"><use href="#i-refresh"/></svg>Actualiser</button>
+    <button type="button" class="menu-item danger" id="logoutBtn"><svg class="ic" aria-hidden="true"><use href="#i-logout"/></svg>Se déconnecter</button>
+    <p class="muted small center-text" id="menuInfo"></p>
   </div>
 </dialog>
 
+<!-- Statistiques -->
+<dialog id="statsSheet" class="sheet" aria-labelledby="statsTitle">
+  <div class="sheet-body">
+    <div class="sheet-handle" aria-hidden="true"></div>
+    <div class="sheet-head">
+      <h2 id="statsTitle">Statistiques</h2>
+      <button type="button" class="icon-btn" id="statsClose" aria-label="Fermer"><svg class="ic" aria-hidden="true"><use href="#i-x"/></svg></button>
+    </div>
+    <div id="statsBody"></div>
+  </div>
+</dialog>
+
+<div id="toasts" popover="manual" aria-live="polite"></div>
+
+<!-- Bibliothèque Supabase (avec un second serveur de secours) -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>window.supabase || document.write('<script src="https://unpkg.com/@supabase/supabase-js@2"><\/script>')</script>
 <script src="config.js"></script>
 <script src="script.js"></script>
+<script>
+  /* Filet de sécurité : si le site ne démarre pas, on le dit */
+  setTimeout(function () {
+    var splash = document.getElementById('splash');
+    var msg = document.getElementById('splashMsg');
+    if (splash && !splash.hidden && msg) msg.hidden = false;
+  }, 9000);
+</script>
 </body>
 </html>
